@@ -9,12 +9,22 @@ import os
 MAX_SENTENCES = 3
 
 
-async def send_message(messageinput):
+""" async def send_message(messageinput):
     uri = "ws://localhost:8777"
     async with websockets.connect(uri) as websocket:
         await websocket.send(messageinput)
         response = await websocket.recv()
-        print(f"Server response: {response}")
+        print(f"Server response: {response}") """
+        
+async def send_message(messageinput):
+    if messageinput.strip():  # Check if the message is not empty after stripping whitespace
+        uri = "ws://localhost:8777"
+        async with websockets.connect(uri) as websocket:
+            await websocket.send(messageinput)
+            response = await websocket.recv()
+            print(f"Server response: {response}")
+    else:
+        print("Warning: Attempted to send an empty message.")
         
 
 
@@ -24,15 +34,7 @@ def clear_console():
 
 def text_detected(text):
     global displayed_text
-    sentences_with_style = [
-        f"{Fore.YELLOW + sentence + Style.RESET_ALL if i % 2 == 0 else Fore.CYAN + sentence + Style.RESET_ALL} "
-        for i, sentence in enumerate(full_sentences)
-    ]
-    new_text = (
-        "".join(sentences_with_style).strip() + " " + text
-        if len(sentences_with_style) > 0
-        else text
-    )
+    new_text = (displayed_text + " " + text) if displayed_text else text
     if new_text != displayed_text:
         displayed_text = new_text
         # clear_console()
@@ -41,7 +43,8 @@ def text_detected(text):
         if '.' in text or '?' in text or '!' in text:
             send_message(new_text)
             displayed_text = ""
-            new_text=""
+            new_text = ""
+
 
 
 def process_text(text):
@@ -75,7 +78,7 @@ if __name__ == "__main__":
 
     recorder_config = {
         "spinner": False,
-        "model": "tiny.en",
+        "model": "large-v2",
         "language": "en",
         "silero_sensitivity": 0.4,
         "webrtc_sensitivity": 2,
