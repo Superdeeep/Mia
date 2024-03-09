@@ -2,10 +2,12 @@ import asyncio
 import websockets
 from RealtimeTTS import TextToAudioStream, CoquiEngine
 import ollama
+from Vtube.vtube import *
 
 # WebSocket 服务器配置
 WEBSOCKET_HOST = "localhost"
 WEBSOCKET_PORT = 8777
+authtoken=""
 
 # 全局变量，用于控制语音引擎的状态
 coqui_engine = None
@@ -26,11 +28,21 @@ async def handle_connection(websocket, path):
 
         # 异步调用Gemma大模型
         answer = await test_ollama_async(message)
-
+        print(f"Answer from Gemma: {answer}")
         # 发出声音
         stream = TextToAudioStream(coqui_engine)
         stream.feed(dummy_generator(answer))
+        await control_talking(authtoken)
         stream.play(log_synthesized_text=True)
+        
+        
+async def setup():
+    global authtoken
+    authtoken = await get_token()
+    print(authtoken)    
+
+# Hiyori_A "9130fba0d5ba4d9382c6bb9bdd074cb1"
+
 
 if __name__ == "__main__":
     try:
@@ -38,11 +50,13 @@ if __name__ == "__main__":
         start_server = websockets.serve(handle_connection, WEBSOCKET_HOST, WEBSOCKET_PORT)
 
         # 创建语音引擎
-        coqui_engine = CoquiEngine(voice="w.wav", language="en", speed=1.0)
+        coqui_engine = CoquiEngine(voice="./voice/w.wav", language="en", speed=1.0)
 
         # 启动 WebSocket 服务器的事件循环
+        asyncio.get_event_loop().run_until_complete(setup())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
+        
 
     except KeyboardInterrupt:
         # 捕获 Ctrl+C 信号，关闭语音引擎并退出程序

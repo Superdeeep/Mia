@@ -207,8 +207,8 @@ async def control_talkingbak(authtoken):
 
 
 async def main():
-    # authtoken = await get_token()
-    # print(authtoken)
+    authtoken = await get_token()
+    print(authtoken)
 
     test_payload_data = {
         "apiName": "VTubeStudioPublicAPI",
@@ -223,7 +223,7 @@ async def main():
 
     # await test_control_model(authtoken, test_payload_data)
 
-    # await control_talking(authtoken)
+    await control_talking(authtoken)
 
     # speech.say("This is a very simple demo test.")
 

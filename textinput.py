@@ -1,12 +1,6 @@
 import asyncio
 import websockets
 
-from RealtimeSTT import AudioToTextRecorder
-from colorama import Fore, Back, Style
-import colorama
-import os
-
-
 
 async def send_message(messageinput):
     if messageinput.strip():  # Check if the message is not empty after stripping whitespace
@@ -18,5 +12,7 @@ async def send_message(messageinput):
     else:
         print("Warning: Attempted to send an empty message.")
 
-        
-asyncio.get_event_loop().run_until_complete(send_message(" "))
+
+while True:
+    textinput=input("You: ")
+    asyncio.get_event_loop().run_until_complete(send_message(textinput))
