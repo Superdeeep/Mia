@@ -29,10 +29,11 @@ async def handle_connection(websocket, path):
         # 异步调用Gemma大模型
         answer = await test_ollama_async(message)
         print(f"Answer from Gemma: {answer}")
+        n=count_words(answer)
         # 发出声音
         stream = TextToAudioStream(coqui_engine)
         stream.feed(dummy_generator(answer))
-        await control_talking(authtoken)
+        await control_talking_words(authtoken,n)
         stream.play(log_synthesized_text=True)
         
         
@@ -42,6 +43,10 @@ async def setup():
     print(authtoken)    
 
 # Hiyori_A "9130fba0d5ba4d9382c6bb9bdd074cb1"
+
+def count_words(text):
+    words = text.split()
+    return len(words)
 
 
 if __name__ == "__main__":

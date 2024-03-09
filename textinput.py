@@ -14,5 +14,12 @@ async def send_message(messageinput):
 
 
 while True:
-    textinput=input("You: ")
-    asyncio.get_event_loop().run_until_complete(send_message(textinput))
+    try:
+        textinput=input("You: ")
+        asyncio.get_event_loop().run_until_complete(send_message(textinput))
+    except KeyboardInterrupt:
+        print("\nGood bye!")
+        break
+        
+    finally:
+        pass

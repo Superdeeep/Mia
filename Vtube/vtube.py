@@ -91,6 +91,46 @@ async def test_control_model(authtoken, test_payload_data):
 
         print(f"Received response:\n{formatted_response}")
 
+async def control_talking_words(authtoken,num):
+    async with websockets.connect(ws_uri) as websocket:
+        # 构建 auth API 请求
+        authentication_payload = {
+            "apiName": "VTubeStudioPublicAPI",
+            "apiVersion": my_apiVersion,
+            "requestID": my_requestID,
+            "messageType": "AuthenticationRequest",
+            "data": {
+                "pluginName": my_pluginName,
+                "pluginDeveloper": pluginDeveloperIstars,
+                "authenticationToken": authtoken,
+            },
+        }
+
+        await websocket.send(json.dumps(authentication_payload))
+
+        response_json_data = await websocket.recv()
+
+        pack = json.loads(response_json_data)
+        auth_status = pack["data"]["authenticated"]
+
+        if auth_status == True:
+            pass
+        else:
+            print(f"Received response:\n{response_json_data}")
+
+        control_talking_payload = {
+            "apiName": "VTubeStudioPublicAPI",
+            "apiVersion": "1.0",
+            "requestID": my_requestID,
+            "messageType": "HotkeyTriggerRequest",
+            "data": {
+                "hotkeyID": "hotkey_talk",
+                # "itemInstanceID": "Optional_ItemInstanceIdOfLive2DItemToTriggerThisHotkeyFor"
+            },
+        }
+        for i in range(num):
+            await websocket.send(json.dumps(control_talking_payload))
+
 
 async def control_talking(authtoken):
     async with websockets.connect(ws_uri) as websocket:
