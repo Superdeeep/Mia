@@ -22,6 +22,7 @@ pluginDeveloperIstars = "TArs"
 Vtubecontrol_Websocket_Host_Local = "localhost"
 Vtubecontrol_Websocket_Server_Port_Local = 8788
 
+
 async def test_control_model(authtoken, test_payload_data):
     global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars
 
@@ -90,6 +91,7 @@ async def get_token():
             json_data = await websocket.recv()
             pack = json.loads(json_data)
             authtoken = pack["data"]["authenticationToken"]
+            print(authtoken)
 
         with open("token.json", "w") as file:
             file.write(authtoken)
@@ -183,7 +185,6 @@ async def control_talking_single(authtoken):
 
 
 async def control_talking_WS_SERVER(websocket, path):
-
     async for message in websocket:
         print(f"Receive from client: {message}")
         await websocket.send(f"OK ")
@@ -269,12 +270,10 @@ async def control_talkingbak(authtoken):
                 await websocket.send(json.dumps(control_talking_payload))
 
 
-
-
-
 async def main():
-    authtoken = await get_token()
-    print(authtoken)
+    #authtoken = 
+    await get_token()
+    #print(authtoken)
 
     test_payload_data = {
         "apiName": "VTubeStudioPublicAPI",
@@ -289,8 +288,11 @@ async def main():
 
     # await test_control_model(authtoken, test_payload_data)
 
-    await control_talking_single(authtoken)
+    #await control_talking_single(authtoken)
 
+
+
+asyncio.get_event_loop().run_until_complete(main())
 
 if __name__ == "__main__":
     try:
@@ -302,9 +304,9 @@ if __name__ == "__main__":
         )
 
         # 启动 WebSocket 服务器的事件循环
+        asyncio.get_event_loop().run_until_complete(get_token())
         asyncio.get_event_loop().run_until_complete(start_server)
         asyncio.get_event_loop().run_forever()
 
     except KeyboardInterrupt:
         print("bye.")
-
