@@ -87,7 +87,7 @@ if __name__ == "__main__":
         )
 
         # 创建语音引擎
-        voice_engine_coqui = CoquiEngine(voice="./voice/w.wav", language="en", speed=1.0)
+        voice_engine_coqui = CoquiEngine(voice="./voice/neuro.wav", language="en", speed=1.0)
         print("CoquiEngine initialized.")
 
         # 启动 WebSocket 服务器的事件循环
