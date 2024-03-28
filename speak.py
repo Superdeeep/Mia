@@ -8,7 +8,7 @@ import websockets
 from RealtimeTTS import TextToAudioStream, CoquiEngine
 import ollama
 from asyncio import sleep
-from Vtube.vtube import *
+from Vtube.OLDvtube import *
 
 # WebSocket 服务器配置
 

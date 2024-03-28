@@ -1,77 +1,43 @@
+
+import os
+import json
+import ollama
+import logging
 import asyncio
 import websockets
-import json
-from asyncio import sleep
-import os
-import random
-import numpy as np
-import requests
-import json
+from RealtimeTTS import TextToAudioStream, CoquiEngine
 
-# import speech
+# import random
+# import numpy as np
+# import requests
+# import time
 
-# Hiyori_A "9130fba0d5ba4d9382c6bb9bdd074cb1"
+stream = None
+engine = None
 my_requestID = "VTubeControlPlugin"
 my_pluginName = "VTube模型控制插件"
 my_apiVersion = "1.0"
+pluginDeveloperIstars = "TArs"
 VTube_websocket_server_remote = (
     "ws://localhost:8001"  # VTube Studio WebSocket服务器地址
 )
-pluginDeveloperIstars = "TArs"
-
-Vtubecontrol_Websocket_Host_Local = "localhost"
-Vtubecontrol_Websocket_Server_Port_Local = 8788
-
-
-async def test_control_model(authtoken, test_payload_data):
-    global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars
-
-    async with websockets.connect(VTube_websocket_server_remote) as websocket:
-        # 构建 API 请求
-        authentication_payload = {
-            "apiName": "VTubeStudioPublicAPI",
-            "apiVersion": my_apiVersion,
-            "requestID": my_requestID,
-            "messageType": "AuthenticationRequest",
-            "data": {
-                "pluginName": my_pluginName,
-                "pluginDeveloper": pluginDeveloperIstars,
-                "authenticationToken": authtoken,
-            },
-        }
-
-        await websocket.send(json.dumps(authentication_payload))
-
-        response_json_data = await websocket.recv()
-
-        pack = json.loads(response_json_data)
-        auth_status = pack["data"]["authenticated"]
-
-        if auth_status == True:
-            print(f"successfully authenticated with VTube Studio")
-        else:
-            print(f"Received response:\n{response_json_data}")
-
-        test_payload = test_payload_data
-
-        await websocket.send(json.dumps(test_payload))
-
-        response = await websocket.recv()
-        formatted_response = json.dumps(json.loads(response), indent=2)
-
-        print(f"Received response:\n{formatted_response}")
 
 
 async def get_token():
     """获取Vtube的token的值并保存"""
+
     global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars
     uri = "ws://localhost:8001"
 
+    # 判断是否存在已经获取的token
     if os.path.exists("token.json"):
         with open("token.json", "r") as file:
             authtoken = file.read()
+            print(f"已存在token,值为:{authtoken}")
 
     else:
+        print("不存在token,尝试自动获取")
+        # 发送验证控制载荷
 
         async with websockets.connect(uri) as websocket:
 
@@ -88,21 +54,33 @@ async def get_token():
 
             await websocket.send(json.dumps(request_token_payload))
 
+            # 处理返回的数据
             json_data = await websocket.recv()
             pack = json.loads(json_data)
-            authtoken = pack["data"]["authenticationToken"]
-            print(authtoken)
 
-        with open("token.json", "w") as file:
-            file.write(authtoken)
+            # 如果拒绝插件访问
+            if "errorID" in pack["data"]:
+                errorid = pack["data"]["errorID"]  # 解析data中的errorid
+                authtoken = None
+                print("获取token失败,请确保在vtube中允许插件访问")
+                print(f"错误ID:{errorid}")
+            # 如果允许插件访问
+            elif "authenticationToken" in pack["data"]:
+                authtoken = pack["data"]["authenticationToken"]
+                print(f"已获取token:{authtoken}\n并保存在了本地")
 
+                with open("token.json", "w") as file:
+                    file.write(authtoken)
+    # 返回获取到的token
     return authtoken
 
 
-async def control_talking_words(authtoken, num):
-    """控制Vtube说话的函数，并根据llm的回复来控制说话的长度"""
+async def control_talking(authtoken, answer):
+    """控制vtube模型的嘴巴说话的快捷键"""
+
+    global stream
+    # 验证=========================
     async with websockets.connect(VTube_websocket_server_remote) as websocket:
-        # 构建 auth API 请求
         authentication_payload = {
             "apiName": "VTubeStudioPublicAPI",
             "apiVersion": my_apiVersion,
@@ -114,21 +92,19 @@ async def control_talking_words(authtoken, num):
                 "authenticationToken": authtoken,
             },
         }
-
         await websocket.send(json.dumps(authentication_payload))
+        # ============================
 
+        # 处理接收的数据=================
         response_json_data = await websocket.recv()
-
         pack = json.loads(response_json_data)
         auth_status = pack["data"]["authenticated"]
+        # ============================
 
-        if auth_status == True:
-            pass
-        else:
-            print(f"Received response:\n{response_json_data}")
+        # 判断=========================
+        if auth_status == True:  # 这里的判断可能是有问题的，应该为try catch
 
-        for i in range(num):
-
+            # 发送快捷键数据
             control_talking_payload = {
                 "apiName": "VTubeStudioPublicAPI",
                 "apiVersion": "1.0",
@@ -136,177 +112,92 @@ async def control_talking_words(authtoken, num):
                 "messageType": "HotkeyTriggerRequest",
                 "data": {
                     "hotkeyID": "hotkey_talk",
-                    # "itemInstanceID": "Optional_ItemInstanceIdOfLive2DItemToTriggerThisHotkeyFor"
                 },
             }
             await websocket.send(json.dumps(control_talking_payload))
-            await sleep(0.3)
-            # await async_print(f"talking {i}")
 
+            # 往tts流中丢入llm返回的数据
+            stream.feed(tts_generator(answer))
 
-async def control_talking_single(authtoken):
-    async with websockets.connect(VTube_websocket_server_remote) as websocket:
-        # 构建 auth API 请求
-        authentication_payload = {
-            "apiName": "VTubeStudioPublicAPI",
-            "apiVersion": my_apiVersion,
-            "requestID": my_requestID,
-            "messageType": "AuthenticationRequest",
-            "data": {
-                "pluginName": my_pluginName,
-                "pluginDeveloper": pluginDeveloperIstars,
-                "authenticationToken": authtoken,
-            },
-        }
+            # 并发，同步和检测是否正在播放
+            stream.play_async()
+            print("send.......")
 
-        await websocket.send(json.dumps(authentication_payload))
+            while stream.is_playing():  # 如果tts没有停止
+                await websocket.send(
+                    json.dumps(control_talking_payload)
+                )  # 发送控制嘴巴的快捷键
+                # print("send....")
+                await asyncio.sleep(0.3)  # 等待0.3s
+            print("finished")  # tts停止后发送
 
-        response_json_data = await websocket.recv()
-
-        pack = json.loads(response_json_data)
-        auth_status = pack["data"]["authenticated"]
-
-        if auth_status == True:
-            pass
         else:
             print(f"Received response:\n{response_json_data}")
 
-        control_talking_payload = {
-            "apiName": "VTubeStudioPublicAPI",
-            "apiVersion": "1.0",
-            "requestID": my_requestID,
-            "messageType": "HotkeyTriggerRequest",
-            "data": {
-                "hotkeyID": "hotkey_talk",
-                # "itemInstanceID": "Optional_ItemInstanceIdOfLive2DItemToTriggerThisHotkeyFor"
-            },
-        }
-        await websocket.send(json.dumps(control_talking_payload))
+
+def Hi_generator():
+    yield "hello this is a test sentence"
 
 
-async def control_talking_WS_SERVER(websocket, path):
-    async for message in websocket:
-        print(f"Receive from client: {message}")
-        await websocket.send(f"OK ")
-
-        authtoken = await get_token()
-        print(authtoken)
-        num = int(message)
-
-        await control_talking_words(authtoken, num)
+def test_voice_generator():
+    yield "Hello! I'm an avid learner and explorer of ideas, constantly seeking to expand my horizons and embrace new challenges."
 
 
-async def control_talkingbak(authtoken):
-    global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars
-    openn = 0
-    async with websockets.connect(VTube_websocket_server_remote) as websocket:
-        # 构建 auth API 请求
-        authentication_payload = {
-            "apiName": "VTubeStudioPublicAPI",
-            "apiVersion": my_apiVersion,
-            "requestID": my_requestID,
-            "messageType": "AuthenticationRequest",
-            "data": {
-                "pluginName": my_pluginName,
-                "pluginDeveloper": pluginDeveloperIstars,
-                "authenticationToken": authtoken,
-            },
-        }
+def tts_generator(answer):
+    yield answer
 
-        await websocket.send(json.dumps(authentication_payload))
 
-        response_json_data = await websocket.recv()
+async def play_realtime_tts_ready():
+    """初始化coqui并说出测试句子"""
 
-        pack = json.loads(response_json_data)
-        auth_status = pack["data"]["authenticated"]
+    global stream, engine
+    logging.basicConfig(level=logging.INFO)
+    engine = CoquiEngine(
+        voice="./voice/w.wav", language="en", speed=1.0, level=logging.INFO
+    )
 
-        if auth_status == True:
-            pass
-        else:
-            print(f"Received response:\n{response_json_data}")
+    stream = TextToAudioStream(engine)
 
-        for num in range(1, 10):
-            await sleep(1)
+    print("tts stream is ready")
+    stream.feed(Hi_generator()).play(log_synthesized_text=True)
 
-            open = 1
 
-            for i in np.arange(0.2, open, 0.2):
+async def answer_from_ollama(input_data):
+    """llm的回答"""
 
-                control_talking_payload = {
-                    "apiName": "VTubeStudioPublicAPI",
-                    "apiVersion": my_apiVersion,
-                    "requestID": my_requestID,
-                    "messageType": "InjectParameterDataRequest",
-                    "data": {
-                        "mode": "set",
-                        "parameterValues": [
-                            {"id": "MouthOpen", "value": openn},
-                        ],
-                    },
-                }
-                openn = openn + 0.2
-                await sleep(0.1)
-
-                await websocket.send(json.dumps(control_talking_payload))
-
-            for i in np.arange(open, 0.2, -0.2):
-
-                control_talking_payload = {
-                    "apiName": "VTubeStudioPublicAPI",
-                    "apiVersion": my_apiVersion,
-                    "requestID": my_requestID,
-                    "messageType": "InjectParameterDataRequest",
-                    "data": {
-                        "mode": "set",
-                        "parameterValues": [
-                            {"id": "MouthOpen", "value": openn},
-                        ],
-                    },
-                }
-
-                openn = openn - 0.2
-                await sleep(0.1)
-
-                await websocket.send(json.dumps(control_talking_payload))
+    response = await asyncio.to_thread(
+        ollama.chat,
+        model="gemma:2b",
+        messages=[{"role": "user", "content": input_data}],
+    )
+    return response["message"]["content"]
 
 
 async def main():
-    #authtoken = 
-    await get_token()
-    #print(authtoken)
+    # 测试功能部分
+    # authtoken=await get_token()
+    # await asyncio.gather(test_talk(authtoken))
+    # await asyncio.sleep(10)
+    ##########
 
-    test_payload_data = {
-        "apiName": "VTubeStudioPublicAPI",
-        "apiVersion": "1.0",
-        "requestID": my_requestID,
-        "messageType": "ModelLoadRequest",
-        "data": {
-            "modelID": "9130fba0d5ba4d9382c6bb9bdd074cb1"
-            # "modelID": "16cb35b798894643a7f37a902ad640f9"
-        },
-    }
+    await play_realtime_tts_ready()  # 准备tts
+    authtoken = await get_token()  # 获取token
+    await asyncio.sleep(1)
+    while True:  # 连续用户输入
+        message = input(">")  # 输入等待
+        answer = await answer_from_ollama(message)  # llm回答
+        print(answer)  # 打印回答
+        await asyncio.gather(control_talking(authtoken, answer))  # 控制嘴巴
+        # await asyncio.sleep(0.5)
 
-    # await test_control_model(authtoken, test_payload_data)
-
-    #await control_talking_single(authtoken)
-
-
-
-asyncio.get_event_loop().run_until_complete(main())
 
 if __name__ == "__main__":
     try:
-        # 启动 WebSocket 服务器
-        start_server = websockets.serve(
-            control_talking_WS_SERVER,
-            Vtubecontrol_Websocket_Host_Local,
-            Vtubecontrol_Websocket_Server_Port_Local,
-        )
 
-        # 启动 WebSocket 服务器的事件循环
-        asyncio.get_event_loop().run_until_complete(get_token())
-        asyncio.get_event_loop().run_until_complete(start_server)
-        asyncio.get_event_loop().run_forever()
+        asyncio.get_event_loop().run_until_complete(main())  # 主循环
+        # asyncio.get_event_loop().run_until_complete(get_token())
+        # asyncio.get_event_loop().run_forever()
 
     except KeyboardInterrupt:
-        print("bye.")
+        print("bye.")  # 中断后
+        engine.shutdown()  # 关闭coqui
