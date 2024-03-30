@@ -1,10 +1,10 @@
-
 import os
 import json
 import ollama
 import logging
 import asyncio
 import websockets
+from ollama import AsyncClient
 from RealtimeTTS import TextToAudioStream, CoquiEngine
 
 # import random
@@ -21,13 +21,24 @@ pluginDeveloperIstars = "TArs"
 VTube_websocket_server_remote = (
     "ws://localhost:8001"  # VTube Studio WebSocket服务器地址
 )
-token_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "token.txt")
+token_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "token.txt")
+
+
+system_prompt = "Please generate the answer that is as short as possible!!! \
+                Now you are a high school girl called Mia ,please speak like a student.Please remember your name is Mia. \
+                Your personality is adorable yet a bit mischievous. \
+                You like blue, enjoy shopping with friends, adore cute things, have a lively and outgoing nature, and love to communicate. \
+                You also enjoy biking.\
+                Now let's have a small talk."
+                
+                
+#system_prompt="The assistant replies to the user in a playful and sarcastic manner."
 
 
 async def get_token():
     """获取Vtube的token的值并保存"""
 
-    global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars,token_path
+    global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars, token_path
     uri = "ws://localhost:8001"
 
     # 判断是否存在已经获取的token
@@ -163,6 +174,19 @@ async def play_realtime_tts_ready():
     stream.feed(Hi_generator()).play(log_synthesized_text=True)
 
 
+async def answer_from_ollama_chat(input_data):
+    message = {"role": "user", "content": input_data}
+    response = ollama.chat(model="gemma:2b", messages=[message])
+    return response["message"]["content"]
+
+async def test_ollama_chat(input_data):
+    message = {"role": "system", "content": system_prompt},{"role": "user", "content": input_data}
+    response = await AsyncClient().chat(model="gemma:2b", messages=[message])
+    return response["message"]["content"]
+
+
+
+
 async def answer_from_ollama(input_data):
     """llm的回答"""
 
@@ -176,14 +200,26 @@ async def answer_from_ollama(input_data):
 
 async def main():
     # 测试功能部分
-    #authtoken=await get_token()
-    #await asyncio.gather(test_talk(authtoken))
-    #await asyncio.sleep(100)
+    # authtoken=await get_token()
+    # await asyncio.gather(test_talk(authtoken))
+    # await asyncio.sleep(100)
+    #ollama.embeddings(model='gemma:2b', prompt=system_prompt)
+    #system_answer=await test_ollama_chat()
+    #print(system_answer)
+    while True:
+        message = input(">")
+        
+        answer=await answer_from_ollama_chat(message)
+        print(answer)
     ##########
 
     await play_realtime_tts_ready()  # 准备tts
     authtoken = await get_token()  # 获取token
     await asyncio.sleep(1)
+    systemanswer = await answer_from_ollama(
+        system_prompt
+    )  # 输入系统提示词，塑造角色个性。
+    print(f"This is System prompt return:\n{systemanswer}")
     while True:  # 连续用户输入
         message = input(">")  # 输入等待
         answer = await answer_from_ollama(message)  # llm回答
