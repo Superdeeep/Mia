@@ -21,17 +21,18 @@ pluginDeveloperIstars = "TArs"
 VTube_websocket_server_remote = (
     "ws://localhost:8001"  # VTube Studio WebSocket服务器地址
 )
+token_path=os.path.join(os.path.dirname(os.path.abspath(__file__)), "token.txt")
 
 
 async def get_token():
     """获取Vtube的token的值并保存"""
 
-    global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars
+    global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars,token_path
     uri = "ws://localhost:8001"
 
     # 判断是否存在已经获取的token
-    if os.path.exists("token.json"):
-        with open("token.json", "r") as file:
+    if os.path.exists(token_path):
+        with open(token_path, "r") as file:
             authtoken = file.read()
             print(f"已存在token,值为:{authtoken}")
 
@@ -69,7 +70,7 @@ async def get_token():
                 authtoken = pack["data"]["authenticationToken"]
                 print(f"已获取token:{authtoken}\n并保存在了本地")
 
-                with open("token.json", "w") as file:
+                with open(token_path, "w") as file:
                     file.write(authtoken)
     # 返回获取到的token
     return authtoken
@@ -175,9 +176,9 @@ async def answer_from_ollama(input_data):
 
 async def main():
     # 测试功能部分
-    # authtoken=await get_token()
-    # await asyncio.gather(test_talk(authtoken))
-    # await asyncio.sleep(10)
+    #authtoken=await get_token()
+    #await asyncio.gather(test_talk(authtoken))
+    #await asyncio.sleep(100)
     ##########
 
     await play_realtime_tts_ready()  # 准备tts
