@@ -30,9 +30,9 @@ system_prompt = "Please generate the answer that is as short as possible!!! \
                 You like blue, enjoy shopping with friends, adore cute things, have a lively and outgoing nature, and love to communicate. \
                 You also enjoy biking.\
                 Now let's have a small talk."
-                
-                
-#system_prompt="The assistant replies to the user in a playful and sarcastic manner."
+
+
+# system_prompt="The assistant replies to the user in a playful and sarcastic manner."
 
 
 async def get_token():
@@ -139,7 +139,7 @@ async def control_talking(authtoken, answer):
                 await websocket.send(
                     json.dumps(control_talking_payload)
                 )  # 发送控制嘴巴的快捷键
-                # print("send....")
+                print("send....")
                 await asyncio.sleep(0.3)  # 等待0.3s
             print("finished")  # tts停止后发送
 
@@ -165,7 +165,7 @@ async def play_realtime_tts_ready():
     global stream, engine
     logging.basicConfig(level=logging.INFO)
     engine = CoquiEngine(
-        voice="./voice/w.wav", language="en", speed=1.0, level=logging.INFO
+        voice="./voice/neuro.wav", language="en", speed=1.0, level=logging.INFO
     )
 
     stream = TextToAudioStream(engine)
@@ -179,12 +179,14 @@ async def answer_from_ollama_chat(input_data):
     response = ollama.chat(model="gemma:2b", messages=[message])
     return response["message"]["content"]
 
+
 async def test_ollama_chat(input_data):
-    message = {"role": "system", "content": system_prompt},{"role": "user", "content": input_data}
+    message = {"role": "system", "content": system_prompt}, {
+        "role": "user",
+        "content": input_data,
+    }
     response = await AsyncClient().chat(model="gemma:2b", messages=[message])
     return response["message"]["content"]
-
-
 
 
 async def answer_from_ollama(input_data):
@@ -203,29 +205,32 @@ async def main():
     # authtoken=await get_token()
     # await asyncio.gather(test_talk(authtoken))
     # await asyncio.sleep(100)
-    #ollama.embeddings(model='gemma:2b', prompt=system_prompt)
-    #system_answer=await test_ollama_chat()
-    #print(system_answer)
-    while True:
-        message = input(">")
-        
-        answer=await answer_from_ollama_chat(message)
-        print(answer)
+    # ollama.embeddings(model='gemma:2b', prompt=system_prompt)
+    # system_answer=await test_ollama_chat()
+    # print(system_answer)
+
+    # while True:
+    #    message = input(">")
+    #
+    #    answer=await answer_from_ollama_chat(message)
+    #    print(answer)
     ##########
 
     await play_realtime_tts_ready()  # 准备tts
     authtoken = await get_token()  # 获取token
     await asyncio.sleep(1)
-    systemanswer = await answer_from_ollama(
-        system_prompt
-    )  # 输入系统提示词，塑造角色个性。
-    print(f"This is System prompt return:\n{systemanswer}")
+
+    # systemanswer = await answer_from_ollama(
+    #    system_prompt
+    # )  # 输入系统提示词，塑造角色个性。
+    # print(f"This is System prompt return:\n{systemanswer}")
+
     while True:  # 连续用户输入
         message = input(">")  # 输入等待
         answer = await answer_from_ollama(message)  # llm回答
         print(answer)  # 打印回答
         await asyncio.gather(control_talking(authtoken, answer))  # 控制嘴巴
-        # await asyncio.sleep(0.5)
+        await asyncio.sleep(0.1)
 
 
 if __name__ == "__main__":
