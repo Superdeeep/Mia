@@ -139,7 +139,7 @@ async def control_talking(authtoken, answer):
                 await websocket.send(
                     json.dumps(control_talking_payload)
                 )  # 发送控制嘴巴的快捷键
-                print("send....")
+                #print("send....")
                 await asyncio.sleep(0.3)  # 等待0.3s
             print("finished")  # tts停止后发送
 
@@ -165,7 +165,7 @@ async def play_realtime_tts_ready():
     global stream, engine
     logging.basicConfig(level=logging.INFO)
     engine = CoquiEngine(
-        voice="./voice/neuro.wav", language="en", speed=1.0, level=logging.INFO
+        voice="./voice/ttz.wav", language="zh", speed=1.0, level=logging.INFO
     )
 
     stream = TextToAudioStream(engine)
@@ -176,7 +176,7 @@ async def play_realtime_tts_ready():
 
 async def answer_from_ollama_chat(input_data):
     message = {"role": "user", "content": input_data}
-    response = ollama.chat(model="gemma:2b", messages=[message])
+    response = ollama.chat(model="gemma2:2b", messages=[message])
     return response["message"]["content"]
 
 
@@ -185,7 +185,7 @@ async def test_ollama_chat(input_data):
         "role": "user",
         "content": input_data,
     }
-    response = await AsyncClient().chat(model="gemma:2b", messages=[message])
+    response = await AsyncClient().chat(model="gemma2:2b", messages=[message])
     return response["message"]["content"]
 
 
@@ -194,18 +194,19 @@ async def answer_from_ollama(input_data):
 
     response = await asyncio.to_thread(
         ollama.chat,
-        model="gemma:2b",
+        model="gemma2:2b",
         messages=[{"role": "user", "content": input_data}],
     )
     return response["message"]["content"]
 
 
 async def main():
+    
     # 测试功能部分
     # authtoken=await get_token()
     # await asyncio.gather(test_talk(authtoken))
     # await asyncio.sleep(100)
-    # ollama.embeddings(model='gemma:2b', prompt=system_prompt)
+    # ollama.embeddings(model='gemma2:2b', prompt=system_prompt)
     # system_answer=await test_ollama_chat()
     # print(system_answer)
 
@@ -229,6 +230,7 @@ async def main():
         message = input(">")  # 输入等待
         answer = await answer_from_ollama(message)  # llm回答
         print(answer)  # 打印回答
+        #answer = input(">")
         await asyncio.gather(control_talking(authtoken, answer))  # 控制嘴巴
         await asyncio.sleep(0.1)
 
