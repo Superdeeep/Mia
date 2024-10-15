@@ -70,7 +70,7 @@ class VTubeControl:
         # 返回获取到的token
         return authtoken
 
-    async def control_talking(self, token, tts_module, answer):  ##, stream, answer_generator):
+    async def control_talking(self, token): 
         """控制vtube模型的嘴巴说话的快捷键"""
 
         # 验证=========================
@@ -109,13 +109,11 @@ class VTubeControl:
                     },
                 }
                 # 播放音频并报告状态
-                await tts_module.play_and_report_status(answer)
+                #await tts_module.play_and_report_status(answer)
 
                 # 持续发送控制命令，直到 TTS 完成播放
-                while tts_module.is_playing():
-                    await print("正在说话...")
-                    await websocket.send(json.dumps(hotkey_payload))
-                    await asyncio.sleep(0.3)
+                #while tts_module.is_playing():
+                await websocket.send(json.dumps(hotkey_payload))
 
             else:
                 print(f"Received response:\n{response_json_data}")

@@ -140,7 +140,7 @@ async def control_talking(authtoken, answer):
                     json.dumps(control_talking_payload)
                 )  # 发送控制嘴巴的快捷键
                 #print("send....")
-                await asyncio.sleep(0.3)  # 等待0.3s
+                await asyncio.sleep(0.1)  # 等待0.3s
             print("finished")  # tts停止后发送
 
         else:
