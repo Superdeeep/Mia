@@ -41,6 +41,7 @@ async def get_token():
     global my_requestID, my_pluginName, my_apiVersion, VTube_websocket_server_remote, pluginDeveloperIstars, token_path
     uri = "ws://localhost:8001"
 
+
     # 判断是否存在已经获取的token
     if os.path.exists(token_path):
         with open(token_path, "r") as file:
@@ -132,7 +133,7 @@ async def control_talking(authtoken, answer):
             stream.feed(tts_generator(answer))
 
             # 并发，同步和检测是否正在播放
-            stream.play_async()
+            stream.play_async()#找了我好久
             print("send.......")
 
             while stream.is_playing():  # 如果tts没有停止
