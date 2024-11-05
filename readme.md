@@ -1,3 +1,20 @@
+
+# VTuber Mia
+
+# quick start :
+
+# About src:
+
+main.py 
+vtube_control.py
+llm.py
+
+# About Mia:
+
+
+
+
+
 ```bash
 conda create -n Mia python=3.10
 

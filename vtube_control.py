@@ -34,86 +34,93 @@ class VTubeControl:
         else:
             print("不存在token,尝试自动获取")
             # 发送验证控制载荷
+            try:
+                async with websockets.connect(uri) as websocket:
 
-            async with websockets.connect(uri) as websocket:
+                    request_token_payload = {
+                        "apiName": "VTubeStudioPublicAPI",
+                        "apiVersion": self.api_version,
+                        "requestID": self.Vtube_id,
+                        "messageType": "AuthenticationTokenRequest",
+                        "data": {
+                            "pluginName": self.Vtube_plugin_name,
+                            "pluginDeveloper": self.Vtube_plugin_developer,
+                        },
+                    }
 
-                request_token_payload = {
-                    "apiName": "VTubeStudioPublicAPI",
-                    "apiVersion": self.api_version,
-                    "requestID": self.Vtube_id,
-                    "messageType": "AuthenticationTokenRequest",
-                    "data": {
-                        "pluginName": self.Vtube_plugin_name,
-                        "pluginDeveloper": self.Vtube_plugin_developer,
-                    },
-                }
+                    await websocket.send(json.dumps(request_token_payload))
 
-                await websocket.send(json.dumps(request_token_payload))
+                    # 处理返回的数据
+                    json_data = await websocket.recv()
+                    pack = json.loads(json_data)
 
-                # 处理返回的数据
-                json_data = await websocket.recv()
-                pack = json.loads(json_data)
+                    # 如果拒绝插件访问
+                    if "errorID" in pack["data"]:
+                        errorid = pack["data"]["errorID"]  # 解析data中的errorid
+                        authtoken = None
+                        print("获取token失败,请确保在vtube中允许插件访问")
+                        print(f"错误ID:{errorid}")
+                    # 如果允许插件访问
+                    elif "authenticationToken" in pack["data"]:
+                        authtoken = pack["data"]["authenticationToken"]
+                        print(f"已获取token:{authtoken}\n并保存在了本地")
 
-                # 如果拒绝插件访问
-                if "errorID" in pack["data"]:
-                    errorid = pack["data"]["errorID"]  # 解析data中的errorid
-                    authtoken = None
-                    print("获取token失败,请确保在vtube中允许插件访问")
-                    print(f"错误ID:{errorid}")
-                # 如果允许插件访问
-                elif "authenticationToken" in pack["data"]:
-                    authtoken = pack["data"]["authenticationToken"]
-                    print(f"已获取token:{authtoken}\n并保存在了本地")
-
-                    with open(self.token_path, "w") as file:
-                        file.write(authtoken)
+                        with open(self.token_path, "w") as file:
+                            file.write(authtoken)
+            except Exception as e:
+                self.logger.error(f"获取 token 时出现异常: {e}")
+        
+        
         # 返回获取到的token
         return authtoken
 
     async def control_talking(self, token): 
         """控制vtube模型的嘴巴说话的快捷键"""
-
-        # 验证=========================
-        async with websockets.connect(self.ws_address) as websocket:
-            authentication_payload = {
-                "apiName": "VTubeStudioPublicAPI",
-                "apiVersion": self.api_version,
-                "requestID": self.Vtube_id,
-                "messageType": "AuthenticationRequest",
-                "data": {
-                    "pluginName": self.Vtube_plugin_name,
-                    "pluginDeveloper": self.Vtube_plugin_developer,
-                    "authenticationToken": token,
-                },
-            }
-            await websocket.send(json.dumps(authentication_payload))
-            # ============================
-
-            # 处理接收的数据=================
-            response_json_data = await websocket.recv()
-            pack = json.loads(response_json_data)
-            auth_status = pack["data"]["authenticated"]
-            # ============================
-
-            # 判断=========================
-            if auth_status == True:  # 这里的判断可能是有问题的，应该为try catch
-
-                # 发送快捷键数据
-                hotkey_payload = {
+        try:
+            # 验证=========================
+            async with websockets.connect(self.ws_address) as websocket:
+                authentication_payload = {
                     "apiName": "VTubeStudioPublicAPI",
-                    "apiVersion": "1.0",
+                    "apiVersion": self.api_version,
                     "requestID": self.Vtube_id,
-                    "messageType": "HotkeyTriggerRequest",
+                    "messageType": "AuthenticationRequest",
                     "data": {
-                        "hotkeyID": "hotkey_talk",
+                        "pluginName": self.Vtube_plugin_name,
+                        "pluginDeveloper": self.Vtube_plugin_developer,
+                        "authenticationToken": token,
                     },
                 }
-                # 播放音频并报告状态
-                #await tts_module.play_and_report_status(answer)
+                await websocket.send(json.dumps(authentication_payload))
+                # ============================
 
-                # 持续发送控制命令，直到 TTS 完成播放
-                #while tts_module.is_playing():
-                await websocket.send(json.dumps(hotkey_payload))
+                # 处理接收的数据=================
+                response_json_data = await websocket.recv()
+                pack = json.loads(response_json_data)
+                auth_status = pack["data"]["authenticated"]
+                # ============================
 
-            else:
-                print(f"Received response:\n{response_json_data}")
+                # 判断=========================
+                if auth_status == True:  # 这里的判断可能是有问题的，应该为try catch
+
+                    # 发送快捷键数据
+                    hotkey_payload = {
+                        "apiName": "VTubeStudioPublicAPI",
+                        "apiVersion": "1.0",
+                        "requestID": self.Vtube_id,
+                        "messageType": "HotkeyTriggerRequest",
+                        "data": {
+                            "hotkeyID": "hotkey_talk",
+                        },
+                    }
+                    # 播放音频并报告状态
+                    #await tts_module.play_and_report_status(answer)
+
+                    # 持续发送控制命令，直到 TTS 完成播放
+                    #while tts_module.is_playing():
+                    await websocket.send(json.dumps(hotkey_payload))
+
+                else:
+                    print(f"Received response:\n{response_json_data}")
+
+        except Exception as e:
+            self.logger.error(f"控制说话时出现异常: {e}")
