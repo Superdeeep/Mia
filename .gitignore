@@ -8,3 +8,4 @@ RealtimeTTS/
 *.jpeg
 *.pth
 voice/
+token.txt
