@@ -7,15 +7,14 @@
 
 </div>
 
-[老子要看中文](https://github.com/Superdeeep/Mia/blob/main/readme_zh.md)
 
-## ⚡️ Quick start:
+## ⚡️ 搞快点搞快点:
 
-> A not-so-quick quick start
+> 但是并不快
 
-You need install CUDA(11.8) and cuDNN, and then install the required packages.
+装好CUDA（11.8）和cuDNN，然后安装所需的包。
 
-I perfer to use conda to build the environment.
+我用conda搭的虚拟环境。
 
 ```bash
 conda create -n Mia python=3.10
@@ -38,11 +37,11 @@ pip install torch==2.3.1+cu118 torchaudio==2.3.1 --index-url https://download.py
 
 
 
-## About src:
+## 关于代码:
 
 ```
 ├─models
-│  └─v2.0.2->here is realtimetts[coqui] model
+│  └─v2.0.2->放realtimetts[coqui] 的语音模型
 ├─RealtimeTTS
 │  ├─RealtimeTTS
 │  │  └─engines
@@ -50,31 +49,28 @@ pip install torch==2.3.1+cu118 torchaudio==2.3.1 --index-url https://download.py
 │      ├─coqui_voices
 │      └─models
 │          └─v2.0.2
-├─voice->here is the voice files,coqui can simulate the voice
+├─voice->coqui模拟声音的文件们
 llm.py
 main.py
 vtube_control.py
 ```
 
-## About Mia:
+## 关于妙芽:
 
 孩子不懂事，写着玩的
 
 
-## My Environment:
+## 我的环境长啥样？:
 > If you run into library compatility issues, try setting these libraries to fixed versions:
 
 click [here](https://github.com/Superdeeep/Mia/blob/main/pip.txt)
 
-## TODO:
-
+## 待办事项:
 - [ ] 寻找合适的TTS
 - [ ] 寻找合适的STT
 - [ ] 实现不依赖ollama
 
-## Thanks:
+## 谢谢您:
 - [ollama](https://github.com/ollama/ollama)
 - [coqui-ai](https://github.com/coqui-ai/TTS)
 - [RealtimeTTS](https://github.com/KoljaB/RealtimeTTS)
-
-
