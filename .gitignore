@@ -7,3 +7,4 @@ RealtimeTTS/
 *.png
 *.jpeg
 *.pth
+voice/
