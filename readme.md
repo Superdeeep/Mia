@@ -1,15 +1,18 @@
+<div align="center">
 
 # VTuber Mia
 
-# quick start :
+> 孩子不懂事，一通乱写的。
 
-# About src:
+## quick start :
+
+## About src:
 
 main.py 
 vtube_control.py
 llm.py
 
-# About Mia:
+## About Mia:
 
 
 
