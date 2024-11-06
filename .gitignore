@@ -1,0 +1,9 @@
+__pycache__/
+models/
+RealtimeTTS/
+*.pyc
+*.wav
+*.jpg
+*.png
+*.jpeg
+*.pth
