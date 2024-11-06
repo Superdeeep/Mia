@@ -5,6 +5,7 @@
 > 孩子不懂事，一通乱写的。
 
 </div>
+
 ## quick start :
 
 ## About src:
@@ -52,6 +53,14 @@ pip install networkx==2.8.8
 pip install numpy==1.24.3
 pip install requests==2.31.0
 ```
+
+## TODO:
+
+
+- [ ] 寻找合适的TTS
+- [ ] 寻找合适的STT
+- [ ] 实现不依赖ollama
+
 
 xiaolingyun:
 pip install SpeechRecognition
