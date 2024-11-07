@@ -36,7 +36,7 @@ def tts_worker(tts_queue, status_queue):
         
         # Monitor playback and update status_queue when finished
         while stream.is_playing():
-            time.sleep(0.1)  # Small delay to avoid excessive polling
+            time.sleep(0.2)  # Small delay to avoid excessive polling
         status_queue.put(False)  # Signal that playback has finished
 
 def vtube_worker(control_queue):
@@ -53,7 +53,8 @@ def vtube_worker(control_queue):
             break
         asyncio.run(vtube_control.control_talking(token))
 
-def main():
+
+if __name__ == "__main__":
     message_queue = Queue()
     response_queue = Queue()
     tts_queue = Queue()
@@ -71,22 +72,15 @@ def main():
     try:
         while True:
             message = input("> ")
-            if message == "exit":
-                message_queue.put("STOP")
-                tts_queue.put("STOP")
-                control_queue.put("STOP")
+            if message == "bye":
                 break
             message_queue.put(message)
 
-            # Get response from LLM
             answer = response_queue.get()
             clean_answer = remove_emoji(answer)
             print(f"LLM回答: {clean_answer}")
-
-            # Send clean_answer to TTS
             tts_queue.put(clean_answer)
 
-            # VTube talking during TTS playback
             playback_active = True
             while playback_active:
                 if not status_queue.empty():
@@ -98,13 +92,13 @@ def main():
 
     except KeyboardInterrupt:
         print("程序中断，关闭各模块！")
+
+    finally:
         message_queue.put("STOP")
         tts_queue.put("STOP")
         control_queue.put("STOP")
-
-    llm_process.join()
-    tts_process.join()
-    vtube_process.join()
-
-if __name__ == "__main__":
-    main()
+        
+        llm_process.join()
+        tts_process.join()
+        vtube_process.join()
+        print("程序退出！") 
