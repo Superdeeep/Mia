@@ -82,4 +82,4 @@ if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        print("程序中断，关闭TTS引擎")
+        print("程序中断，关闭TTS引擎！")
