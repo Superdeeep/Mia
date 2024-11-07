@@ -1,70 +1,104 @@
 import re
-import asyncio
 import logging
-
-# import from my code
+import asyncio
+from multiprocessing import Process, Queue
 from llm import LLMModule
 from vtube_control import VTubeControl
-
 from RealtimeTTS import TextToAudioStream, CoquiEngine
-
+import time
 
 def remove_emoji(text):
-    # 只匹配 emoji 的正则表达式
-    emoji_pattern = re.compile(
-        "[\U00010000-\U0010FFFF]", flags=re.UNICODE  # 匹配所有 emoji 字符
-    )
+    emoji_pattern = re.compile("[\U00010000-\U0010FFFF]", flags=re.UNICODE)
     return emoji_pattern.sub(r"", text)
 
-def tts_feed_generator(answer):
-    yield answer
+def llm_worker(input_queue, output_queue):
+    llm_module = LLMModule()
+    while True:
+        message = input_queue.get()
+        if message == "STOP":
+            break
+        answer = asyncio.run(llm_module.get_llm_answer(message))
+        output_queue.put(answer)
 
+def tts_worker(tts_queue, status_queue):
+    engine = CoquiEngine(voice="./voice/ttz.wav", language="zh", speed=1.0, level=logging.INFO)
+    stream = TextToAudioStream(engine)
+    print("TTS流已准备")
+    
+    while True:
+        text = tts_queue.get()
+        if text == "STOP":
+            break
+        
+        # Start playback and notify the main process
+        stream.feed((text,)).play(log_synthesized_text=True)
+        status_queue.put(True)  # Signal that playback has started
+        
+        # Monitor playback and update status_queue when finished
+        while stream.is_playing():
+            time.sleep(0.2)  # Small delay to avoid excessive polling
+        status_queue.put(False)  # Signal that playback has finished
 
-async def main():
-    # 初始化各模块
+def vtube_worker(control_queue):
     vtube_control = VTubeControl(
         ws_address="ws://localhost:8001",
         Vtube_id="VTubeControlPlugin",
         Vtube_plugin_name="VTube模型控制插件",
         Vtube_plugin_developer="TArs",
     )
-
-    # llm_module = LLMModule(system_prompt="你的名字叫妙芽，你喜欢骑自行车")
-    llm_module = LLMModule()
-
-    # 获取VTube的token
-    token = await vtube_control.get_token()
-
-    engine = CoquiEngine(
-        voice="./voice/ttz.wav", language="zh", speed=1.0, level=logging.INFO
-    )
-    stream = TextToAudioStream(engine)
-    print("TTS流已准备")
-
-    stream.feed(tts_feed_generator("你好，欢迎！")).play(log_synthesized_text=True)
-
-
+    token = asyncio.run(vtube_control.get_token())
     while True:
-        # 获取用户输入
-        message = input("> ")
-
-        # LLM获取回答
-        answer = await llm_module.get_llm_answer(message)
-        #print(f"LLM回答: {answer}")
-
-        print(f"LLM回答no emoji: {remove_emoji(answer)}")
-
-        stream.feed(tts_feed_generator(remove_emoji(answer)))
-        stream.play_async()
-
-        # 等待TTS播放完毕
-        while stream.is_playing():
-            await vtube_control.control_talking(token)
-            await asyncio.sleep(0.7)
+        command = control_queue.get()
+        if command == "STOP":
+            break
+        asyncio.run(vtube_control.control_talking(token))
 
 
 if __name__ == "__main__":
+    message_queue = Queue()
+    response_queue = Queue()
+    tts_queue = Queue()
+    control_queue = Queue()
+    status_queue = Queue()
+
+    llm_process = Process(target=llm_worker, args=(message_queue, response_queue))
+    tts_process = Process(target=tts_worker, args=(tts_queue, status_queue))
+    vtube_process = Process(target=vtube_worker, args=(control_queue,))
+
+    llm_process.start()
+    tts_process.start()
+    vtube_process.start()
+
     try:
-        asyncio.run(main())
+        while True:
+            message = input("> ")
+            if message == "bye":
+                break
+            message_queue.put(message)
+
+            answer = response_queue.get()
+            clean_answer = remove_emoji(answer)
+            print(f"LLM回答: {clean_answer}")
+            tts_queue.put(clean_answer)
+
+            playback_active = True
+            while playback_active:
+                if not status_queue.empty():
+                    playback_active = status_queue.get()
+
+                if playback_active:
+                    control_queue.put("TALK")
+                    time.sleep(0.7)
+
     except KeyboardInterrupt:
-        print("程序中断，关闭TTS引擎！")
+        print("程序中断，关闭各模块！")
+
+    finally:
+        message_queue.put("STOP")
+        tts_queue.put("STOP")
+        control_queue.put("STOP")
+        
+        llm_process.join()
+        tts_process.join()
+        vtube_process.join()
+        print("程序退出！") 
