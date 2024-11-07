@@ -71,6 +71,11 @@ def main():
     try:
         while True:
             message = input("> ")
+            if message == "exit":
+                message_queue.put("STOP")
+                tts_queue.put("STOP")
+                control_queue.put("STOP")
+                break
             message_queue.put(message)
 
             # Get response from LLM
