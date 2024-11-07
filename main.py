@@ -16,16 +16,6 @@ def remove_emoji(text):
     )
     return emoji_pattern.sub(r"", text)
 
-
-async def vtube_talking_control(vtube_control, token, should_talk_event):
-    """Simulates controlling talking in VTube Studio."""
-
-    while True:
-        if should_talk_event.is_set():
-            await vtube_control.control_talking(token)
-        await asyncio.sleep(0.1)
-
-
 def tts_feed_generator(answer):
     yield answer
 
@@ -44,7 +34,6 @@ async def main():
 
     # 获取VTube的token
     token = await vtube_control.get_token()
-    # logging.basicConfig(level=logging.INFO)
 
     engine = CoquiEngine(
         voice="./voice/ttz.wav", language="zh", speed=1.0, level=logging.INFO
@@ -54,9 +43,6 @@ async def main():
 
     stream.feed(tts_feed_generator("你好，欢迎！")).play(log_synthesized_text=True)
 
-    should_talk_event = asyncio.Event()
-
-    asyncio.create_task(vtube_talking_control(vtube_control, token, should_talk_event))
 
     while True:
         # 获取用户输入
@@ -64,18 +50,17 @@ async def main():
 
         # LLM获取回答
         answer = await llm_module.get_llm_answer(message)
-        print(f"LLM回答: {answer}")
+        #print(f"LLM回答: {answer}")
+
         print(f"LLM回答no emoji: {remove_emoji(answer)}")
 
-        should_talk_event.set()
         stream.feed(tts_feed_generator(remove_emoji(answer)))
         stream.play_async()
 
         # 等待TTS播放完毕
         while stream.is_playing():
-            should_talk_event.set()
-            await asyncio.sleep(0.1)
-        should_talk_event.clear()
+            await vtube_control.control_talking(token)
+            await asyncio.sleep(0.7)
 
 
 if __name__ == "__main__":
@@ -83,6 +68,3 @@ if __name__ == "__main__":
         asyncio.run(main())
     except KeyboardInterrupt:
         print("程序中断，关闭TTS引擎！")
-
-        ##
-        #
