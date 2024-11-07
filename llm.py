@@ -2,7 +2,7 @@ import ollama
 import asyncio
 
 class LLMModule:
-    def __init__(self, model="gemma2:2b", system_prompt=None):
+    def __init__(self, model="qwen2.5:0.5b", system_prompt=None):
         self.model = model
         self.system_prompt = system_prompt
 

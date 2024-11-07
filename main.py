@@ -2,7 +2,7 @@ import re
 import asyncio
 import logging
 
-#import from my code
+# import from my code
 from llm import LLMModule
 from vtube_control import VTubeControl
 
